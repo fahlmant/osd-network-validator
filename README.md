@@ -1,2 +1,2 @@
 # osd-network-validator
-A implementation of the egree network-verifier for osd-network-verifier in Rust
+A implementation of the egress network-verifier for osd-network-verifier in Rust
