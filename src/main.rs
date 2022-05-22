@@ -1,9 +1,11 @@
-extern crate serde_yaml;
 extern crate clap;
+extern crate serde_yaml;
 
+use clap::Parser;
 use std::fs;
 use std::time::Duration;
-use clap::{Parser};
+use std::thread;
+use std::collections::HashMap;
 
 #[macro_use]
 extern crate serde_derive;
@@ -33,15 +35,36 @@ impl ReachabilityConfig {
         let e = serde_yaml::from_str::<ReachabilityConfig>(&data).unwrap();
         self.endpoints = e.endpoints
     }
+  
 
     // Performs connectivity test for each endpoint
     fn test_endpoints(self, timeout: Duration) {
+        let mut target_urls: Vec<(String, bool)> = Vec::new();
+
         for e in self.endpoints.iter() {
             for p in e.ports.iter() {
-                // Validate that the endpoint is reachable for each host:port combination
-                validate_reachability(&e.host, p, e.tls_disabled, timeout);
+                let target_url = match p {
+                    80 => format!("http://{}:{}", e.host, p.to_string()),
+                    443 => format!("https://{}:{}", e.host, p.to_string()),
+                    22 => format!("ssh://{}:{}", e.host, p.to_string()),
+                    _ => format!("http://{}:{}", e.host, p.to_string()),
+                };
+
+                let tls_disabled = match e.tls_disabled {
+                    Some(t) => t,
+                    None => false,
+                };
+                
+                target_urls.push((target_url, tls_disabled));
             }
         }
+
+        let handle = thread::spawn(move || {
+            for t in target_urls.iter() {
+                validate_reachability(&t.0, t.1, timeout);
+            }
+        });
+        handle.join().unwrap();
     }
 }
 
@@ -58,7 +81,6 @@ struct Args {
 }
 
 fn main() {
-
     let args = Args::parse();
 
     let timeout = Duration::from_secs(args.timeout);
@@ -73,39 +95,19 @@ fn main() {
     reachability_config.test_endpoints(timeout);
 }
 
-// Attempts to establish a connection and communicate to the provided host:port combinationk
-fn validate_reachability(host: &String, port: &i32, tls_disabled: Option<bool>, timeout: Duration) {
+fn validate_reachability(target_url: &String, tls_disabled: bool, timeout: std::time::Duration) {  
 
     // Setup the client builder with timoout provided
     let mut client_builder = reqwest::Client::builder().timeout(timeout);
-
-    // If tls is explicitly disabled, then add option to accept invalid certs to client builder
-    // Do nothing if tls_disabled is false or missing
-
-    if let Some(t) = tls_disabled {
-        if t {
+    if tls_disabled {
             client_builder = client_builder.danger_accept_invalid_certs(true);
-        }
     }
-    /* For learning purposes, the above code block is equivalent to:
-    ```
-    match tls_disabled {
-        Some(t) => if t {client_builder = client_builder.danger_accept_invalid_certs(true);}
-        None => {},
-    }
-    ```
-    */
 
-    //let client = client_builder.build().unwrap();
+    let client = client_builder.build().unwrap();
 
-    //let request = client.get("http://redhat.com:80").build().unwrap();
+    // Build the request URL with protocol based on the port
 
-    //let resp = client.execute(request).await;
-    
-    match port {
-        80 => println!("{}:{} {:?}", host, port,tls_disabled),
-        443 => println!("{}:{} {:?}", host, port,tls_disabled),
-        22 => println!("{}:{} {:?}", host, port,tls_disabled),
-        _ => println!("{}:{} {:?}", host, port,tls_disabled),
-    }
+    let request = client.get(target_url).build().unwrap();
+
+    println!("{}", target_url);
 }
