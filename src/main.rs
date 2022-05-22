@@ -81,10 +81,20 @@ fn validate_reachability(host: &String, port: &i32, tls_disabled: Option<bool>, 
 
     // If tls is explicitly disabled, then add option to accept invalid certs to client builder
     // Do nothing if tls_disabled is false or missing
+
+    if let Some(t) = tls_disabled {
+        if t {
+            client_builder = client_builder.danger_accept_invalid_certs(true);
+        }
+    }
+    /* For learning purposes, the above code block is equivalent to:
+    ```
     match tls_disabled {
         Some(t) => if t {client_builder = client_builder.danger_accept_invalid_certs(true);}
         None => {},
     }
+    ```
+    */
 
     //let client = client_builder.build().unwrap();
 
