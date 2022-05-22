@@ -1,7 +1,9 @@
 extern crate serde_yaml;
+extern crate clap;
 
 use std::fs;
 use std::time::Duration;
+use clap::{Parser};
 
 #[macro_use]
 extern crate serde_derive;
@@ -43,16 +45,30 @@ impl ReachabilityConfig {
     }
 }
 
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[clap(short, long,default_value_t = 2)]
+    timeout: u64,
+
+    /// Number of times to greet
+    #[clap(short, long, default_value = "config.yaml")]
+    config: String,
+}
+
 fn main() {
 
-    let timeout = Duration::from_secs(2);
+    let args = Args::parse();
 
-    // Init new ReachabilityConfig
+    let timeout = Duration::from_secs(args.timeout);
+
+    // Init new ReachabilityConfigl
     let mut reachability_config = ReachabilityConfig {
         endpoints: Vec::new(),
     };
 
-    reachability_config.load_from_yaml(String::from("config.yaml"));
+    reachability_config.load_from_yaml(String::from(args.config));
 
     reachability_config.test_endpoints(timeout);
 }
