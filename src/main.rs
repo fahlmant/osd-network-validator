@@ -48,11 +48,11 @@ impl ReachabilityConfig {
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
-    #[clap(short, long,default_value_t = 2)]
+    /// Timeout of each egress url test
+    #[clap(short, long, default_value_t = 2)]
     timeout: u64,
 
-    /// Number of times to greet
+    /// Path to configuration file
     #[clap(short, long, default_value = "config.yaml")]
     config: String,
 }
@@ -86,7 +86,11 @@ fn validate_reachability(host: &String, port: &i32, tls_disabled: Option<bool>, 
         None => {},
     }
 
-    let client = client_builder.build();
+    //let client = client_builder.build().unwrap();
+
+    //let request = client.get("http://redhat.com:80").build().unwrap();
+
+    //let resp = client.execute(request).await;
     
     match port {
         80 => println!("{}:{} {:?}", host, port,tls_disabled),
