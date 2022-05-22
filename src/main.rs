@@ -63,7 +63,7 @@ fn main() {
 
     let timeout = Duration::from_secs(args.timeout);
 
-    // Init new ReachabilityConfigl
+    // Init new ReachabilityConfig
     let mut reachability_config = ReachabilityConfig {
         endpoints: Vec::new(),
     };
